@@ -1,6 +1,6 @@
 // ==UserScript==
 // @name         MTurk Payment Cycle Manager
-// @version      17
+// @version      18
 // @match        https://worker.mturk.com/*
 // @grant        none
 // @run-at       document-idle
@@ -31,14 +31,14 @@
   };
 
   const SLABS = {
-    S10_PLUS: 'S10_PLUS',
-    S8_TO_9: 'S8_TO_9',
-    S1_2_TO_7: 'S1_2_TO_7',
-    S0_TO_1_2: 'S0_TO_1_2'
+    S6_PLUS: 'S6_PLUS',
+    S2_TO_5: 'S2_TO_5',
+    S1_1_TO_2: 'S1_1_TO_2',
+    S0_TO_1_1: 'S0_TO_1_1'
   };
 
   const RULES = {
-    R1_DO_NOTHING_10: 'R1_DO_NOTHING_10',
+    R1_DO_NOTHING_6: 'R1_DO_NOTHING_6',
     R_DYNAMIC_FORCE: 'R_DYNAMIC_FORCE',
     R_DYNAMIC_DO_NOTHING: 'R_DYNAMIC_DO_NOTHING'
   };
@@ -209,10 +209,10 @@
   }
 
   function getEarningSlab(earnings) {
-    if (earnings >= 10) return SLABS.S10_PLUS;
-    if (earnings >= 8) return SLABS.S8_TO_9;
-    if (earnings > 1.2) return SLABS.S1_2_TO_7;
-    return SLABS.S0_TO_1_2;
+    if (earnings >= 6) return SLABS.S6_PLUS;
+    if (earnings >= 2) return SLABS.S2_TO_5;
+    if (earnings > 1.1) return SLABS.S1_1_TO_2;
+    return SLABS.S0_TO_1_1;
   }
 
   function isOneDayBeforeTransfer(transferDate) {
@@ -415,7 +415,7 @@
     }
 
     if (ctx.window === 'C') {
-      if (ctx.earnings <= 1.2) {
+      if (ctx.earnings <= 1.1) {
         if (cycle === 14) {
           score += 100;
           reasons.push('low earnings late window prefer 14');
@@ -424,7 +424,7 @@
         if (cycle === 3) score += 20;
       }
 
-      if (ctx.earnings > 1.2 && ctx.earnings < 8) {
+      if (ctx.earnings > 1.1 && ctx.earnings < 2) {
         if (ctx.lastDate >= 7) {
           if (cycle === 7) {
             score += 100;
@@ -449,7 +449,7 @@
         }
       }
 
-      if (ctx.earnings >= 8 && ctx.earnings < 10) {
+      if (ctx.earnings >= 2 && ctx.earnings < 6) {
         if (ctx.lastDate >= 3) {
           if (cycle === 3) {
             score += 100;
@@ -475,20 +475,20 @@
   }
 
   function decideRule(ctx) {
-    if (ctx.earnings >= 10 && ctx.daysUntilTransfer > 3) {
+    if (ctx.earnings >= 6 && ctx.daysUntilTransfer > 3) {
       return {
         type: 'TARGET_CYCLE',
         ruleId: RULES.R_DYNAMIC_FORCE,
         targetCycle: 3,
-        reason: `earnings >= 10, ${ctx.daysUntilTransfer} days to transfer (> 3) -> force cycle 3`
+        reason: `earnings >= 6, ${ctx.daysUntilTransfer} days to transfer (> 3) -> force cycle 3`
       };
     }
 
-    if (ctx.earnings >= 10) {
+    if (ctx.earnings >= 6) {
       return {
         type: 'DO_NOTHING',
-        ruleId: RULES.R1_DO_NOTHING_10,
-        reason: `earnings >= 10, ${ctx.daysUntilTransfer} days to transfer (<= 3) -> do nothing`
+        ruleId: RULES.R1_DO_NOTHING_6,
+        reason: `earnings >= 6, ${ctx.daysUntilTransfer} days to transfer (<= 3) -> do nothing`
       };
     }
 
@@ -500,11 +500,11 @@
       };
     }
 
-    if (ctx.window === 'C' && ctx.earnings >= 8 && ctx.earnings < 10 && ctx.lastDate < 3) {
+    if (ctx.window === 'C' && ctx.earnings >= 2 && ctx.earnings < 6 && ctx.lastDate < 3) {
       return {
         type: 'DO_NOTHING',
         ruleId: RULES.R_DYNAMIC_DO_NOTHING,
-        reason: 'window C, earnings >= 8 and < 10, lastDate < 3 -> do nothing'
+        reason: 'window C, earnings >= 2 and < 6, lastDate < 3 -> do nothing'
       };
     }
 
@@ -604,7 +604,7 @@
     const hasInFlightWorkflow = wf && wf.active && wf.periodId === ctx.periodId;
     const wasVerifying = state && state.phase === 'VERIFY_ON_EARNINGS';
     const isScheduleTriggerDay =
-      (ctx.earnings >= 10 && ctx.daysUntilTransfer > 3) ||
+      (ctx.earnings >= 6 && ctx.daysUntilTransfer > 3) ||
       ctx.isOneDayBeforeTransfer;
 
     if (!hasInFlightWorkflow && !wasVerifying && !isScheduleTriggerDay) {
